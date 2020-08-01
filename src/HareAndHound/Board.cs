@@ -7,60 +7,78 @@ namespace HareAndHound
 {
     public class Board
     {
-        private char[,] spaces = new char[3, 5];
+        private static Dictionary<State, char> print = new Dictionary<State, char>() {
+            { State.Empty, '_' },
+            { State.Invalid, 'X' },
+            { State.Hound, 'D' },
+            { State.Hare, 'r' } };
+        public enum State { Empty, Invalid, Hound, Hare }
+        private const State corner = State.Invalid;
+        private const State dog = State.Hound;
+        private const State rabbit = State.Hare;
+        private const State space = State.Empty;
+        private State[,] spaces = new State[3, 5];
         private bool houndTurn = true;
-        public Board(char[,] spaces) => this.spaces = spaces;
+        public Board(State[,] spaces, bool houndTurn) => (this.spaces, this.houndTurn) = (spaces, houndTurn);
         public Board()
         {
-            IEnumerable<(int, int)> alladdresses = GetAllAddresses();
-            foreach ((var x, var y) in alladdresses) { spaces[x, y] = '_'; }
-            spaces[0, 0] = 'X';
-            spaces[2, 0] = 'X';
-            spaces[0, 4] = 'X';
-            spaces[2, 4] = 'X';
-            spaces[0, 1] = 'D';
-            spaces[1, 0] = 'D';
-            spaces[2, 1] = 'D';
-            spaces[1, 4] = 'B';
+            Spaces[0, 0] = corner;
+            Spaces[2, 0] = corner;
+            Spaces[0, 4] = corner;
+            Spaces[2, 4] = corner;
+            Spaces[0, 1] = dog;
+            Spaces[1, 0] = dog;
+            Spaces[2, 1] = dog;
+            Spaces[1, 4] = rabbit;
         }
-
-        public IEnumerable<(int, int)> GetAllAddresses()
+        private State turn => (houndTurn ? dog : rabbit);
+        public IEnumerable<(int x, int y)> GetAllAddresses()
             => Enumerable.Range(0, 3).SelectMany(x => Enumerable.Range(0, 5).Select(y => (x, y)));
-        public char[,] Spaces { get => spaces; }
+        public State[,] Spaces { get => spaces; }
+
         public IEnumerable<Board> NextStates()
+            => GetAllAddresses().SelectMany((Func<(int x, int y), IEnumerable<Board>>)(address => MovesFromHere((State[,])this.Spaces, address)));
+        private IEnumerable<(int, int)> addressesAround((int, int) position)
         {
-            foreach ((var x, var y) in GetAllAddresses())
-            {
-                foreach (var move in (houndTurn ? HoundMoves(Spaces, x, y) : HareMoves(Spaces, x, y)))
-                { yield return move; }
-            }
+            (var x, var y) = position;
+            int lookLeft = (houndTurn ? 0 : 1);
+            var xMin = Math.Max(x - lookLeft, 0);
+            var xSize = (x < 4 ? 2 : 1) + (xMin > 0 ? lookLeft : 0);
+            var yMin = Math.Max(y - 1, 0);
+            var ySize = y == 1 ? 3 : 2;
+            var xRange = Enumerable.Range(xMin, xSize);
+            var yRange = Enumerable.Range(yMin, ySize);
+            return xRange.Join(yRange, x => true, y => true, (x, y) => (x, y));
         }
-        private IEnumerable<Board> HareMoves(char[,] spaces, int x, int y)
+        private IEnumerable<Board> MovesFromHere(State[,] spaces, (int x, int y) position)
         {
-            yield return new Board(spaces);
+            State state = turn;
+            if (stateAtAddress(spaces, position) != state) { yield break; }
+            var g = addressesAround(position).ToArray();
+            yield return new Board(spaces, !houndTurn);
         }
-        private IEnumerable<Board> HoundMoves(char[,] spaces, int x, int y)
-        {
-            yield return new Board(spaces);
-        }
+        private static State stateAtAddress(State[,] spaces, (int x, int y) position)
+            => spaces[position.x, position.y];
         public string Print()
         {
             var ret = new StringBuilder();
-            for (int x = 0; x < 3; x++)
+            var rows = GetAllAddresses().GroupBy(e => e.x);
+            foreach (var row in rows)
             {
-                for (int y = 0; y < 5; y++)
-                {
-                    ret.Append("[" + spaces[x, y] + "]");
-                }
-                ret.AppendLine();
+                ret.AppendLine(string.Join(null, row.Select(e => "[" + print[Spaces[e.x, e.y]] + "]")));
             }
-            ret.Append(houndTurn ? "Hound" : "Hare");
-            ret.AppendLine("'s Turn");
+            ret.AppendLine((houndTurn ? "Hound" : "Hare") + "'s Turn");
             return ret.ToString();
         }
         public override string ToString()
-        {
-            return spaces.ToString();
-        }
+            => (houndTurn ? print[dog] : print[rabbit])
+                + string.Join(null, Spaces
+                        .Cast<State>()
+                        .Select(e => print[e]));
+        public override bool Equals(object obj)
+            => (obj as Board) is null
+                ? false
+                : obj.ToString() == this.ToString();
+        public override int GetHashCode() => this.ToString().GetHashCode();
     }
 }
