@@ -16,9 +16,10 @@ namespace HareAndHound
             {
                 var board = q.Dequeue();
                 // board.Print().WriteHost();
-                if (board.Spaces[1, 0] == Board.SpaceState.Hare)
+                if (board.GetHareWin())
                 {
                     hareWin.Add(board);
+                    moveList[board] = null;
                 }
                 else
                 {

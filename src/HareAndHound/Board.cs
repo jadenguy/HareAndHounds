@@ -18,6 +18,21 @@ namespace HareAndHound
         private const SpaceState rabbit = SpaceState.Hare;
         private const SpaceState blank = SpaceState.Empty;
         private readonly SpaceState[,] spaces = new SpaceState[3, 5];
+        public bool GetHareWin()
+        {
+            if (Spaces[1, 0] == Board.SpaceState.Hare)
+            {
+                return true;
+            }
+            var ret = false;
+            var keepGoing = true;
+            for (int y = 0; keepGoing && y < 5; y++)
+            {
+                keepGoing = !Enumerable.Range(0, 3).Select(x => stateAtAddress(Spaces, (x, y))).Contains(dog);
+                ret = Enumerable.Range(0, 3).Select(x => stateAtAddress(Spaces, (x, y))).Contains(rabbit);
+            }
+            return ret;
+        }
         private bool houndTurn = true;
         public Board(SpaceState[,] spaces, bool houndTurn) => (this.spaces, this.houndTurn) = (spaces, houndTurn);
         public Board()
@@ -45,15 +60,19 @@ namespace HareAndHound
         }
         private IEnumerable<(int x, int y)> addressesAround((int x, int y) position)
         {
+            var addressList = new List<(int, int)>();
             (var x, var y) = position;
-            int lookLeft = (houndTurn && x != 0 ? 0 : 1);
-            var xMin = Math.Max(x - 1, 0);
-            var xSize = x == 1 ? 3 : 2;
-            var xRange = Enumerable.Range(xMin, xSize);
-            var yMin = Math.Max(y - lookLeft, 0);
-            var ySize = y < 4 ? 2 + lookLeft : 1 + lookLeft;
-            var yRange = Enumerable.Range(yMin, ySize);
-            return xRange.Join(yRange, x => true, y => true, (x, y) => (x, y));
+            // var 
+            if (x > 0) { }
+            // int lookLeft = (houndTurn && x != 0 ? 0 : 1);
+            // var xMin = Math.Max(x - 1, 0);
+            // var xSize = x == 1 ? 3 : 2;
+            // var xRange = Enumerable.Range(xMin, xSize);
+            // var yMin = Math.Max(y - lookLeft, 0);
+            // var ySize = y < 4 ? 2 + lookLeft : 1 + lookLeft;
+            // var yRange = Enumerable.Range(yMin, ySize);
+            // return xRange.Join(yRange, x => true, y => true, (x, y) => (x, y));
+            return addressList;
         }
         private IEnumerable<Board> MovesFromHere((int x, int y) position)
         {
