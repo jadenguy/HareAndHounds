@@ -8,6 +8,8 @@ namespace HareAndHound
     {
         static int Main(string[] args)
         {
+            const bool hareTurn = false;
+            const bool houndTurn = true;
             var moveList = new Dictionary<Board, Board[]>();
             var houndWin = new List<Board>();
             var hareWin = new List<Board>();
@@ -19,23 +21,32 @@ namespace HareAndHound
                 if (board.GetHareWin())
                 {
                     hareWin.Add(board);
-                    moveList[board] = null;
+                    moveList[board] = new[] { board };
                 }
                 else
                 {
-                    var next = board.NextStates().ToArray();
-                    if (next.Length == 0)
+                    var nextState = board.NextStates().ToArray();
+                    if (nextState.Length == 0)
                     {
                         houndWin.Add(board);
+                        moveList[board] = new[] { board };
                     }
-                    moveList[board] = next;
-                    foreach (var nextBoard in next.Where(n => !moveList.ContainsKey(n) && !q.Contains(n)))
+                    else
                     {
-                        q.Enqueue(nextBoard);
+                        moveList[board] = nextState;
+                        foreach (var nextBoard in nextState.Where(n => !moveList.ContainsKey(n) && !q.Contains(n)))
+                        {
+                            q.Enqueue(nextBoard);
+                        }
                     }
                 }
             }
             var playerOptions = moveList.GroupBy(k => k.Key.HoundTurn).ToDictionary(k => k.Key, v => v.ToDictionary(kInner => kInner, vInner => vInner));
+            (var houndOptions, var hareOptions) = (playerOptions[houndTurn], playerOptions[hareTurn]);
+            var houndLosses = houndOptions.Values
+                .Where(o => o.Value.Count() == 1)
+                .Where(o => hareWin.Contains(o.Value.First())).ToArray();
+            houndLosses.Count().WriteHost();
             return 0;
         }
     }
