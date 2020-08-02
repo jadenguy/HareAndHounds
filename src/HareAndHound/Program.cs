@@ -35,7 +35,7 @@ namespace HareAndHound
                     }
                 }
             }
-            var playerOptions = moveList.GroupBy(k => k.Key.HoundTurn);
+            var playerOptions = moveList.GroupBy(k => k.Key.HoundTurn).ToDictionary(k => k.Key, v => v.ToDictionary(kInner => kInner, vInner => vInner));
             return 0;
         }
     }
