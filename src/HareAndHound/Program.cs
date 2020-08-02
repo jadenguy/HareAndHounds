@@ -9,7 +9,7 @@ namespace HareAndHound
         static int Main(string[] args)
         {
             var moveList = new Dictionary<Board, Board[]>();
-            var hareLoss = new List<Board>();
+            var houndWin = new List<Board>();
             var hareWin = new List<Board>();
             var q = new Queue<Board>(new Board[] { new Board() });
             while (q.Count > 0)
@@ -26,7 +26,7 @@ namespace HareAndHound
                     var next = board.NextStates().ToArray();
                     if (next.Length == 0)
                     {
-                        hareLoss.Add(board);
+                        houndWin.Add(board);
                     }
                     moveList[board] = next;
                     foreach (var nextBoard in next.Where(n => !moveList.ContainsKey(n) && !q.Contains(n)))
@@ -35,7 +35,7 @@ namespace HareAndHound
                     }
                 }
             }
-            // moveList.Count().WriteHost();
+            var playerOptions = moveList.GroupBy(k => k.Key.HoundTurn);
             return 0;
         }
     }

@@ -28,13 +28,13 @@ namespace HareAndHound
             var keepGoing = true;
             for (int y = 0; keepGoing && y < 5; y++)
             {
-                keepGoing = !Enumerable.Range(0, 3).Select(x => stateAtAddress(Spaces, (x, y))).Contains(dog);
-                ret = Enumerable.Range(0, 3).Select(x => stateAtAddress(Spaces, (x, y))).Contains(rabbit);
+                keepGoing = !Enumerable.Range(0, 3).Select(x => StateAtAddress(Spaces, (x, y))).Contains(dog);
+                ret = Enumerable.Range(0, 3).Select(x => StateAtAddress(Spaces, (x, y))).Contains(rabbit);
             }
             return ret;
         }
-        private bool houndTurn = true;
-        public Board(SpaceState[,] spaces, bool houndTurn) => (this.spaces, this.houndTurn) = (spaces, houndTurn);
+        public readonly bool HoundTurn = true;
+        public Board(SpaceState[,] spaces, bool houndTurn) => (this.spaces, this.HoundTurn) = (spaces, houndTurn);
         public Board()
         {
             Spaces[0, 0] = corner;
@@ -46,7 +46,7 @@ namespace HareAndHound
             Spaces[2, 1] = dog;
             Spaces[1, 4] = rabbit;
         }
-        private SpaceState turn => (houndTurn ? dog : rabbit);
+        private SpaceState turn => (HoundTurn ? dog : rabbit);
         public IEnumerable<(int x, int y)> GetAllAddresses()
             => Enumerable.Range(0, 3).SelectMany(x => Enumerable.Range(0, 5).Select(y => (x, y)));
         public SpaceState[,] Spaces { get => spaces; }
@@ -54,50 +54,40 @@ namespace HareAndHound
         public IEnumerable<Board> NextStates()
         {
             IEnumerable<(int x, int y)> enumerable = GetAllAddresses()
-                            .Where(position => (stateAtAddress(Spaces, position) == turn)).ToArray();
+                            .Where(position => (StateAtAddress(Spaces, position) == turn)).ToArray();
             return enumerable
                             .SelectMany(address => MovesFromHere(address));
         }
-        private IEnumerable<(int x, int y)> addressesAround((int x, int y) position)
+        private IEnumerable<(int x, int y)> AddressesAround((int x, int y) position)
         {
             var addressList = new List<(int, int)>();
+            var xList = new List<int>();
+            var yList = new List<int>();
             (var x, var y) = position;
-            // var 
-            if (x > 0) { }
-            // int lookLeft = (houndTurn && x != 0 ? 0 : 1);
-            // var xMin = Math.Max(x - 1, 0);
-            // var xSize = x == 1 ? 3 : 2;
-            // var xRange = Enumerable.Range(xMin, xSize);
-            // var yMin = Math.Max(y - lookLeft, 0);
-            // var ySize = y < 4 ? 2 + lookLeft : 1 + lookLeft;
-            // var yRange = Enumerable.Range(yMin, ySize);
-            // return xRange.Join(yRange, x => true, y => true, (x, y) => (x, y));
+            if (x > 0) { xList.Add(x - 1); }
+            if (x < 2) { xList.Add(x + 1); }
+            if (y > 0) { yList.Add(y - 1); }
+            if (y < 4) { yList.Add(y + 1); }
+            addressList.AddRange(xList.Select(newX => (newX, y)));
+            addressList.AddRange(yList.Select(newY => (x, newY)));
+            if ((x + y) % 2 == 1)
+            {
+                addressList.AddRange(xList.SelectMany(newX => yList.Select(newY => (newX, newY))));
+            }
             return addressList;
         }
         private IEnumerable<Board> MovesFromHere((int x, int y) position)
         {
-            var nextSpots = addressesAround(position).Where(n => n != position);
-            // var view = nextSpots.Select(q =>
-            //     {
-            //         var g = new State[3, 5];
-            //         g[q.x, q.y] = turn;
-            //         return new Board(g, houndTurn);
-            //     });
-            // foreach (var v in view) { v.Print().WriteHost(); }
-            // "".WriteHost();
-            // "".WriteHost();
-            // "Options".WriteHost();
-            // "".WriteHost();
-            // "".WriteHost();
-            var validMoves = nextSpots.Where(s => stateAtAddress(Spaces, s) == blank);
+            var nextSpots = AddressesAround(position).Where(n => n != position);
+            var validMoves = nextSpots.Where(s => StateAtAddress(Spaces, s) == blank);
             foreach (var move in validMoves)
             {
                 SpaceState[,] nextBoardState = Spaces.Clone() as SpaceState[,];
-                SpaceState[,] spaces1 = swap(nextBoardState, position, move);
-                yield return new Board(spaces1, !houndTurn);
+                SpaceState[,] spaces1 = Swap(nextBoardState, position, move);
+                yield return new Board(spaces1, !HoundTurn);
             }
         }
-        private static SpaceState[,] swap(SpaceState[,] nextBoardState, (int x, int y) position, (int x, int y) move)
+        private static SpaceState[,] Swap(SpaceState[,] nextBoardState, (int x, int y) position, (int x, int y) move)
         {
             (nextBoardState[move.x, move.y]
             , nextBoardState[position.x, position.y])
@@ -106,7 +96,7 @@ namespace HareAndHound
             return nextBoardState;
 
         }
-        private static SpaceState stateAtAddress(SpaceState[,] spaces, (int x, int y) position)
+        private static SpaceState StateAtAddress(SpaceState[,] spaces, (int x, int y) position)
             => spaces[position.x, position.y];
         public string Print()
         {
@@ -116,11 +106,11 @@ namespace HareAndHound
             {
                 ret.AppendLine(string.Join(null, row.Select(e => "[" + print[Spaces[e.x, e.y]] + "]")));
             }
-            ret.AppendLine((houndTurn ? "Hound" : "Hare") + "'s Turn");
+            ret.AppendLine((HoundTurn ? "Hound" : "Hare") + "'s Turn");
             return ret.ToString();
         }
         public override string ToString()
-            => (houndTurn ? print[dog] : print[rabbit])
+            => (HoundTurn ? print[dog] : print[rabbit])
                 + string.Join(null, Spaces
                         .Cast<SpaceState>()
                         .Select(e => print[e]));
