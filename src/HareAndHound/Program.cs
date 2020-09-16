@@ -8,11 +8,8 @@ namespace HareAndHound
     {
         static int Main(string[] args)
         {
-            const bool hareTurn = false;
-            const bool houndTurn = true;
             var moveList = new Dictionary<Board, Board[]>();
-            var houndWin = new List<Board>();
-            var hareWin = new List<Board>();
+            var someoneWins = new List<Board>();
             var q = new Queue<Board>(new Board[] { new Board() });
             while (q.Count > 0)
             {
@@ -20,16 +17,16 @@ namespace HareAndHound
                 // board.Print().WriteHost();
                 if (board.GetHareWin())
                 {
-                    hareWin.Add(board);
-                    moveList[board] = new[] { board };
+                    // someoneWins.Add(board);
+                    moveList[board] = new Board[] { };
                 }
                 else
                 {
                     var nextState = board.NextStates().ToArray();
                     if (nextState.Length == 0)
                     {
-                        houndWin.Add(board);
-                        moveList[board] = new[] { board };
+                        someoneWins.Add(board);
+                        moveList[board] = new Board[] { };
                     }
                     else
                     {
@@ -41,13 +38,43 @@ namespace HareAndHound
                     }
                 }
             }
-            var playerOptions = moveList.GroupBy(k => k.Key.HoundTurn).ToDictionary(k => k.Key, v => v.ToDictionary(kInner => kInner, vInner => vInner));
-            (var houndOptions, var hareOptions) = (playerOptions[houndTurn], playerOptions[hareTurn]);
-            var houndLosses = houndOptions.Values
-                .Where(o => o.Value.Count() == 1)
-                .Where(o => hareWin.Contains(o.Value.First())).ToArray();
-            houndLosses.Count().WriteHost();
+            var iCanWin = FindMyWins(moveList, someoneWins);
+            var iWillLose = FindMyForcedLosses(moveList, iCanWin.Union(someoneWins));
+            iWillLose.First().Print().WriteHost();
+
+            // var playerOptions = moveList.GroupBy(k => k.Key.HoundTurn).ToDictionary(k => k.Key, v => v.ToDictionary());
+            // (var houndOptions, var hareOptions) = (playerOptions[houndTurn], playerOptions[hareTurn]);
+            // var houndLosses = FindMyForcedLosses(houndOptions, hareWin);
+            // var houndLossCount = houndLosses.Count();
+            // var keepGoing = true;
+            // var i = 0;
+            // while (keepGoing)
+            // {
+            //     var hareForcesWin = FindMyWins(hareOptions, houndLosses);
+            //     houndLosses = houndLosses
+            //         .Union(FindMyForcedLosses(houndOptions, hareForcesWin))
+            //         .Distinct()
+            //         .ToArray();
+            //     keepGoing = houndLosses.Length > houndLossCount;
+            //     houndLossCount = houndLosses.Length;
+            //     i++;
+            // }
+            // i.WriteHost();
             return 0;
+        }
+        private static Board[] FindMyWins(Dictionary<Board, Board[]> myOptions, IEnumerable<Board> theirLosses)
+        {
+            return myOptions.Where(o => o.Value.Any(m => theirLosses.Contains(m))).Select(h => h.Key).ToArray();
+        }
+
+        private static Board[] FindMyForcedLosses(Dictionary<Board, Board[]> myOptions, IEnumerable<Board> theirWins)
+        {
+            IEnumerable<KeyValuePair<Board, Board[]>> enumerable = myOptions
+                            .Where(o => o.Value.All(m => theirWins.Contains(m)));
+            Board[] boards = enumerable
+                                        .Select(h => h.Key)
+                                        .ToArray();
+            return boards;
         }
     }
     static class WriterExtension
@@ -65,6 +92,13 @@ namespace HareAndHound
             var tString = title.ToString();
             var mOut = tString + ": " + mString;
             mOut.WriteHost();
+        }
+    }
+    static class DictExtension
+    {
+        public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> enumerable)
+        {
+            return enumerable.ToDictionary(k => k.Key, v => v.Value);
         }
     }
 }
